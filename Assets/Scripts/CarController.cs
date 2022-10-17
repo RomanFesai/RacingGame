@@ -5,14 +5,14 @@ using System;
 
 public class CarController : MonoBehaviour
 {
-    private const string HORIZONTAL = "Horizontal";
-    private const string VERTICAL = "Vertical";
-
     private float horizontalInput;
     private float verticalInput;
     private float currentSteerAngle;
     private float currentbreakForce;
     private bool isBreaking;
+    private Rigidbody CarRB;
+
+    [SerializeField] private Vector3 _centerOfMass;
 
     [SerializeField] private float motorForce;
     [SerializeField] private float breakForce;
@@ -26,7 +26,19 @@ public class CarController : MonoBehaviour
     [SerializeField] private Transform frontLeftWheelTransform;
     [SerializeField] private Transform frontRightWheeTransform;
     [SerializeField] private Transform rearLeftWheelTransform;
+    [SerializeField] private ParticleSystem RLsmokeParticle;
     [SerializeField] private Transform rearRightWheelTransform;
+    [SerializeField] private ParticleSystem RRsmokeParticle;
+
+    [SerializeField] private List<GameObject> WheelEffectsObj;
+
+
+
+    void Start()
+    {
+        CarRB = GetComponent<Rigidbody>();
+        CarRB.centerOfMass = _centerOfMass;
+    }
 
     private void FixedUpdate()
     {
@@ -34,13 +46,14 @@ public class CarController : MonoBehaviour
         HandleMotor();
         HandleSteering();
         UpdateWheels();
+        WheelEffects();
     }
 
 
     private void GetInput()
     {
-        horizontalInput = Input.GetAxis(HORIZONTAL);
-        verticalInput = Input.GetAxis(VERTICAL);
+        horizontalInput = Input.GetAxis("Horizontal");
+        verticalInput = Input.GetAxis("Vertical");
         isBreaking = Input.GetKey(KeyCode.Space);
     }
 
@@ -82,5 +95,24 @@ public class CarController : MonoBehaviour
         wheelCollider.GetWorldPose(out pos, out rot);
         wheelTransform.rotation = rot;
         wheelTransform.position = pos;
+    }
+
+    void WheelEffects()
+    {
+        foreach(var wheeleffect in WheelEffectsObj)
+        {
+            if (isBreaking && frontLeftWheelCollider.isGrounded == true && frontRightWheelCollider.isGrounded == true && CarRB.velocity.magnitude >=10f)
+            {
+                wheeleffect.GetComponent<TrailRenderer>().emitting = true;
+                RLsmokeParticle.Emit(1);
+                RRsmokeParticle.Emit(1);
+                FindObjectOfType<AudioManager>().Play("Skid");
+            }
+            else
+            {
+                wheeleffect.GetComponent<TrailRenderer>().emitting = false;
+                FindObjectOfType<AudioManager>().Stop("Skid");
+            }
+        }
     }
 }
